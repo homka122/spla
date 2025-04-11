@@ -7,69 +7,74 @@ name: Run Tests
 #       - completed
 
 on:
-  push:
-    branches: [ koreshin/self-hosted-runner ]
+    push:
+        branches: [koreshin/self-hosted-runner]
 
 env:
-  build_dir: "build"
-  config: "Release"
-  artifact: "native"
-  nt: "4"
+    build_dir: "build"
+    config: "Release"
+    artifact: "native"
+    nt: "4"
 
 jobs:
-  build:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: true
-          fetch-depth: 0
+    build:
+        runs-on: ubuntu-24.04
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  submodules: true
+                  fetch-depth: 0
 
-      - uses: seanmiddleditch/gha-setup-ninja@master
+            - uses: seanmiddleditch/gha-setup-ninja@master
 
-      - name: Configure CMake
-        run: cmake . -G Ninja -B ${{ env.build_dir }} -DCMAKE_BUILD_TYPE=${{ env.config }}
-        env:
-          CC: gcc-13
-          CXX: g++-13
+            - name: Configure CMake
+              run: cmake . -G Ninja -B ${{ env.build_dir }} -DCMAKE_BUILD_TYPE=${{ env.config }}
+              env:
+                  CC: gcc-13
+                  CXX: g++-13
 
-      - name: Build library sources
-        run: cmake --build ${{ env.build_dir }}
+            - name: Build library sources
+              run: cmake --build ${{ env.build_dir }}
 
-      - name: Upload binary
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-${{env.artifact}}
-          path: ${{env.build_dir}}/libspla_x64.so
+            - name: Upload binary
+              uses: actions/upload-artifact@v4
+              with:
+                  name: linux-${{env.artifact}}
+                  path: ${{env.build_dir}}/libspla_x64.so
 
-      - name: Archive repository
-        run: tar -cvzf repository.tar.gz ${{ env.build_dir }}/
+            - name: Archive repository
+              run: tar -cvzf repository.tar.gz ${{ env.build_dir }}/
 
-      - name: Upload build directory
-        uses: actions/upload-artifact@v4
-        with:
-          name: repository
-          path: repository.tar.gz
+            - name: Upload build directory
+              uses: actions/upload-artifact@v4
+              with:
+                  name: repository
+                  path: repository.tar.gz
 
-  deploy:
-    name: Run tests
-    needs: build
-    runs-on: self-hosted
-    # if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    deploy:
+        name: Run tests
+        needs: build
+        runs-on: ubuntu-24.04
+        # if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: true
-          fetch-depth: 0
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  submodules: true
+                  fetch-depth: 0
 
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: repository
-      
-      - name: Move artifact to the build directory
-        run: tar -xvzf repository.tar.gz
+            - name: Download artifact
+              uses: actions/download-artifact@v4
+              with:
+                  name: repository
 
-      - name: Run tests
-        run: python3 ./run_tests.py --build-dir=${{ env.build_dir }}
+            - name: Move artifact to the build directory
+              run: tar -xvzf repository.tar.gz
+
+            - name: ls
+              run: |
+                  ls ./
+                  ls ${{env.build_dir}}
+
+            - name: Run tests
+              run: python3 ./run_tests.py --build-dir=${{ env.build_dir }}
